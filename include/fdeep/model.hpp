@@ -13,9 +13,30 @@
 
 #include <algorithm>
 #include <string>
+#include <thread>
 #include <vector>
 
+#if defined(__linux__)
+#include <sched.h>
+#endif
+
 namespace fdeep {
+
+namespace internal {
+
+    // Prefers the affinity mask: hardware_concurrency() counts every core
+    // of the host, not the ones a container or taskset allows.
+    inline std::size_t usable_cpu_count()
+    {
+#if defined(__linux__)
+        cpu_set_t set;
+        if (sched_getaffinity(0, sizeof(set), &set) == 0)
+            return static_cast<std::size_t>(CPU_COUNT(&set));
+#endif
+        return std::max<std::size_t>(1, std::thread::hardware_concurrency());
+    }
+
+}
 
 class model {
 public:
@@ -36,8 +57,8 @@ public:
     }
 
     // Forward pass multiple data.
-    // When parallelly == true, the work is distributed to up to
-    // as many CPUs as data entries are provided.
+    // When parallelly == true, the work is distributed over one thread
+    // per CPU this process may run on, or fewer if there are fewer entries.
     std::vector<tensors> predict_multi(const std::vector<tensors>& inputs_vec,
         bool parallelly) const
     {
@@ -46,8 +67,11 @@ public:
         const auto f = [this](const tensors& inputs) -> tensors {
             return predict(inputs);
         };
-        if (parallelly) {
-            return fplus::transform_parallelly(f, inputs_vec);
+        const std::size_t n_threads = parallelly
+            ? std::min(inputs_vec.size(), internal::usable_cpu_count())
+            : 1;
+        if (n_threads > 1) {
+            return fplus::transform_parallelly_n_threads(n_threads, f, inputs_vec);
         } else {
             return fplus::transform(f, inputs_vec);
         }
