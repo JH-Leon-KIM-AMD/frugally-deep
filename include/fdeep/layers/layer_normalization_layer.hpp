@@ -38,6 +38,32 @@ namespace internal {
         {
             const auto& input = single_tensor_from_tensors(inputs);
 
+            if (axes_.size() == 1 && rank_aligned_axis_to_absolute_axis(input.shape().rank(), axes_.front()) == 5) {
+                const auto& in = *input.as_vector();
+                const std::size_t d = input.shape().depth_;
+                float_vec out(in.size());
+                const float_type* g = gamma_->empty() ? nullptr : gamma_->data();
+                const float_type* b = beta_->empty() ? nullptr : beta_->data();
+                for (std::size_t r = 0; r < in.size() / d; ++r) {
+                    const float_type* x = &in[r * d];
+                    float_type* y = &out[r * d];
+                    float_type mean = 0;
+                    for (std::size_t k = 0; k < d; ++k)
+                        mean += x[k];
+                    mean /= static_cast<float_type>(d);
+                    float_type var = 0;
+                    for (std::size_t k = 0; k < d; ++k)
+                        var += (x[k] - mean) * (x[k] - mean);
+                    var /= static_cast<float_type>(d);
+                    const float_type inv = static_cast<float_type>(1) / std::sqrt(var + epsilon_);
+                    for (std::size_t k = 0; k < d; ++k) {
+                        const float_type s = g ? inv * g[k] : inv;
+                        y[k] = x[k] * s + ((b ? b[k] : 0) - mean * s);
+                    }
+                }
+                return { tensor(input.shape(), std::move(out)) };
+            }
+
             // https://github.com/keras-team/keras/blob/v2.14.0/keras/layers/normalization/layer_normalization.py#L291-L304
             const auto& input_moments = moments(input, axes_);
             const auto& mean = input_moments.first;
