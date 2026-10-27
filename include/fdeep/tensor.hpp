@@ -31,8 +31,8 @@ namespace internal {
             : shape_(shape)
             , values_(values)
         {
-            assertion(shape.volume() == values->size(),
-                std::string("invalid number of values. shape: ") + show_tensor_shape(shape) + "; value count: " + std::to_string(values->size()));
+            if (shape.volume() != values->size())
+                raise_error(std::string("invalid number of values. shape: ") + show_tensor_shape(shape) + "; value count: " + std::to_string(values->size()));
         }
         tensor(const tensor_shape& shape, float_vec&& values)
             : tensor(shape, fplus::make_shared_ref<float_vec>(std::move(values)))
