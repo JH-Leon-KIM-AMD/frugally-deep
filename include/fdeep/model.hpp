@@ -211,18 +211,16 @@ private:
         const auto input_shapes = fplus::transform(
             fplus_c_mem_fn_t(tensor, shape, tensor_shape),
             inputs);
-        internal::assertion(input_shapes
-                == get_input_shapes(),
-            std::string("Invalid inputs shape.\n") + "The model takes " + show_tensor_shapes_variable(get_input_shapes()) + " but provided was: " + show_tensor_shapes(input_shapes));
+        if (!(input_shapes == get_input_shapes()))
+            internal::raise_error(std::string("Invalid inputs shape.\n") + "The model takes " + show_tensor_shapes_variable(get_input_shapes()) + " but provided was: " + show_tensor_shapes(input_shapes));
 
         const auto outputs = model_layer_->apply(inputs);
 
         const auto output_shapes = fplus::transform(
             fplus_c_mem_fn_t(tensor, shape, tensor_shape),
             outputs);
-        internal::assertion(output_shapes
-                == get_output_shapes(),
-            std::string("Invalid outputs shape.\n") + "The model should return " + show_tensor_shapes_variable(get_output_shapes()) + " but actually returned: " + show_tensor_shapes(output_shapes));
+        if (!(output_shapes == get_output_shapes()))
+            internal::raise_error(std::string("Invalid outputs shape.\n") + "The model should return " + show_tensor_shapes_variable(get_output_shapes()) + " but actually returned: " + show_tensor_shapes(output_shapes));
 
         return outputs;
     }

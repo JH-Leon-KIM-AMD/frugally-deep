@@ -61,7 +61,7 @@ namespace internal {
             const size_t size = feature_arr->size();
             const size_t depth = input.shape().depth_;
             assertion(depth == n_in_ && (size % depth) == 0, "Invalid input value count.");
-            std::vector<float_type> result_values((input.shape().volume() / depth) * n_out_);
+            float_vec result_values((input.shape().volume() / depth) * n_out_);
             const size_t n_of_parts = size / depth;
 
             Eigen::Map<const RowMajorMatrixXf, Eigen::Unaligned> params(

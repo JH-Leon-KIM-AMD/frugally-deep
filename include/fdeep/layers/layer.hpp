@@ -64,19 +64,17 @@ namespace internal {
             output_dict& output_cache,
             std::size_t node_idx, std::size_t tensor_idx) const
         {
-            const node_connection conn(name_, node_idx, tensor_idx);
-
-            if (!fplus::map_contains(output_cache, conn.without_tensor_idx())) {
+            auto key = std::make_pair(name_, node_idx);
+            auto it = output_cache.find(key);
+            if (it == output_cache.end()) {
                 assertion(node_idx < nodes_.size(), "invalid node index");
-                output_cache[conn.without_tensor_idx()] = nodes_[node_idx].get_output(layers, output_cache, *this);
+                auto outputs = nodes_[node_idx].get_output(layers, output_cache, *this);
+                it = output_cache.emplace(std::move(key), std::move(outputs)).first;
             }
 
-            const auto& outputs = fplus::get_from_map_unsafe(
-                output_cache, conn.without_tensor_idx());
-
-            assertion(tensor_idx < outputs.size(),
+            assertion(tensor_idx < it->second.size(),
                 "invalid tensor index");
-            return outputs[tensor_idx];
+            return it->second[tensor_idx];
         }
 
         virtual void reset_states()
@@ -112,15 +110,14 @@ namespace internal {
         return layer.apply(inputs);
     }
 
-    inline layer_ptr get_layer(const layer_ptrs& layers,
+    inline const layer_ptr& get_layer(const layer_ptrs& layers,
         const std::string& layer_id)
     {
-        const auto is_matching_layer = [layer_id](const layer_ptr& ptr) -> bool {
-            return ptr->name_ == layer_id;
-        };
-        return fplus::throw_on_nothing(
-            error("dangling layer reference: " + layer_id),
-            fplus::find_first_by(is_matching_layer, layers));
+        for (const auto& ptr : layers) {
+            if (ptr->name_ == layer_id)
+                return ptr;
+        }
+        throw error("dangling layer reference: " + layer_id);
     }
 
 }

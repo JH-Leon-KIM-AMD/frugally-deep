@@ -41,7 +41,7 @@ namespace internal {
     class layer;
     typedef std::shared_ptr<layer> layer_ptr;
     typedef std::vector<layer_ptr> layer_ptrs;
-    layer_ptr get_layer(const layer_ptrs& layers, const std::string& layer_id);
+    const layer_ptr& get_layer(const layer_ptrs& layers, const std::string& layer_id);
     tensor get_layer_output(const layer_ptrs& layers, output_dict& output_cache,
         const layer_ptr& layer, std::size_t node_idx, std::size_t tensor_idx);
     tensors apply_layer(const layer& layer, const tensors& inputs);

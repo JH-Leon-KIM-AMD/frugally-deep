@@ -63,8 +63,8 @@ namespace internal {
         {
             output_dict output_cache;
 
-            assertion(inputs.size() == input_connections_.size(),
-                "invalid number of input tensors for this model: " + fplus::show(input_connections_.size()) + " required but " + fplus::show(inputs.size()) + " provided");
+            if (inputs.size() != input_connections_.size())
+                raise_error("invalid number of input tensors for this model: " + fplus::show(input_connections_.size()) + " required but " + fplus::show(inputs.size()) + " provided");
 
             for (std::size_t i = 0; i < inputs.size(); ++i) {
                 output_cache[input_connections_[i].without_tensor_idx()] = { inputs[i] };
